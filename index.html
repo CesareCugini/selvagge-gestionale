@@ -205,7 +205,8 @@ if (sessionStorage.getItem('slv_auth') === '1') {
       <div class="backup-row">
         <button class="btn-backup btn-bk" onclick="doBackup()">&#128190; Backup</button>
         <button class="btn-backup btn-rst" onclick="doRipristina()">&#128194; Ripristina</button>
-        <input type="file" id="restore-input" accept=".json" style="display:none" onchange="loadBackup(event)">
+
+      <input type="file" id="restore-input" accept=".json" style="display:none" onchange="loadBackup(event)">
       </div>
       <p class="backup-note">Il backup salva tutti i dati dei gestionali in un file JSON. Il ripristino sovrascrive i dati correnti.</p>
     </div>
