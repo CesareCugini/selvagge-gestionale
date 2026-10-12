@@ -75,7 +75,7 @@ if ('serviceWorker' in navigator) {
 const WORKER = 'https://selvagge-sync.cesare-cugini.workers.dev';
 const TOKEN  = 'Selv2026xK9mPqL3nR7w';
 const LS_KEYS = [
-  'slv_ops_v1','slv_budget_v1','slv_budget_v1_ver',
+  'slv_ops_v1','slv_ops_v1_ver','slv_budget_v1','slv_budget_v1_ver',
   'lsmagazzino_v1','ls_uova_v1',
   'dip_v5','fer_v5','ore_v5','sch_v5','str_v1','tur_v5',
   'lslogistica_v1','lsscadenziario_v1','lscalanalisi_v1','lscoperture_v1',
@@ -22108,7 +22108,7 @@ window.addEventListener('message', function(e) {
 
 // Keys owned by each module
 var MODULE_KEYS = {
-  operativo: ['slv_ops_v1','slv_budget_v1','slv_budget_v1_ver','slv_ops_v1_ver'],
+  operativo: ['slv_ops_v1','slv_ops_v1_ver','slv_budget_v1','slv_budget_v1_ver','slv_ops_v1_ver'],
   magazzino: ['lsmagazzino_v1'],
   uova:      ['ls_uova_v1'],
   personale: ['dip_v5','fer_v5','tur_v5','ore_v5','sch_v5','str_v1','backup_ts','lscoperture_v1'],
@@ -22170,7 +22170,7 @@ function show(name) {
 
 function toast(msg,ms){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},ms||2800);}
 
-var ALL_KEYS=['slv_ops_v1','slv_budget_v1','slv_budget_v1_ver','lsmagazzino_v1','ls_uova_v1','dip_v5','fer_v5','ore_v5','sch_v5','str_v1','tur_v5','lslogistica_v1','lsscadenziario_v1','lscalanalisi_v1','lscoperture_v1'];
+var ALL_KEYS=['slv_ops_v1','slv_ops_v1_ver','slv_budget_v1','slv_budget_v1_ver','lsmagazzino_v1','ls_uova_v1','dip_v5','fer_v5','ore_v5','sch_v5','str_v1','tur_v5','lslogistica_v1','lsscadenziario_v1','lscalanalisi_v1','lscoperture_v1'];
 function doBackup(){
   var iframes = ['operativo','magazzino','uova','personale','logistica','scadenziario','calanalisi','coperture'];
   var pending = [];
@@ -22234,7 +22234,7 @@ function loadBackup(ev){
 
       // 2. Invia IMPORT_DATA a ciascun iframe già aperto
       var allKeys = {
-        operativo: ['slv_ops_v1','slv_budget_v1','slv_budget_v1_ver'],
+        operativo: ['slv_ops_v1','slv_ops_v1_ver','slv_budget_v1','slv_budget_v1_ver'],
         magazzino: ['lsmagazzino_v1'],
         uova:      ['ls_uova_v1'],
         personale: ['dip_v5','fer_v5','tur_v5','ore_v5','sch_v5','str_v1'],
