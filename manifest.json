@@ -1,0 +1,14 @@
+{
+  "name": "Le Selvagge",
+  "short_name": "Selvagge",
+  "description": "Gestionale aziendale Le Selvagge",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#2c5f2e",
+  "theme_color": "#2c5f2e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
