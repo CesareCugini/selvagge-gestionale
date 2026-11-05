@@ -74,7 +74,7 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
     'lsmagazzino_v1','ls_uova_v1',
     'dip_v5','fer_v5','ore_v5','sch_v5','str_v1','tur_v5',
     'lslogistica_v1','lsscadenziario_v1','lscalanalisi_v1','lscoperture_v1',
-    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b'
+    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105'
   ];
   const SYNC_KEY = 'selvagge_data';
   const SYNC_TS  = 'selvagge_sync_ts';
@@ -185,6 +185,40 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
         localStorage.setItem('slv_fix_mag2026_b', new Date().toISOString());
         if (ch) { await pushToCloud(); setTimeout(() => location.reload(), 300); return; }
       } catch (e) { console.error('Correzione maggio', e); }
+    }
+    // Correzione una tantum: UOVCAM00S di marzo 2026 = 2.560 uova
+    if (window.__pullOk && !localStorage.getItem('slv_fix_mar2026_camS')) {
+      try {
+        const U = JSON.parse(localStorage.getItem('ls_uova_v1') || 'null');
+        let ch = false;
+        if (U && U.bilancio) U.bilancio.forEach(b => { if (+b.anno === 2026 && +b.mese === 3 && Number(b.omaggiS) !== 2560) { b.omaggiS = 2560; ch = true; } });
+        if (ch) localStorage.setItem('ls_uova_v1', JSON.stringify(U));
+        localStorage.setItem('slv_fix_mar2026_camS', new Date().toISOString());
+        if (ch) { await pushToCloud(); setTimeout(() => location.reload(), 300); return; }
+      } catch (e) { console.error('Correzione marzo UOVCAM00S', e); }
+    }
+    // Rettifica una tantum del 05-11-2026: +19.062 UOVCAM00L e +21.622 produzione P1/P2,
+    // ripartite in proporzione sui mesi gennaio-ottobre 2026
+    if (window.__pullOk && !localStorage.getItem('slv_fix_rett_20261105')) {
+      try {
+        const U = JSON.parse(localStorage.getItem('ls_uova_v1') || 'null');
+        if (U && U.bilancio && U.entrate) {
+          const CAM = {"1": 1925, "2": 2013, "3": 2621, "4": 2786, "5": 2024, "6": 2637, "7": 481, "8": 2202, "9": 1551, "10": 822};
+          const PROD = {"P1-1": 21, "P1-3": 614, "P1-4": 1218, "P2-1": 1326, "P2-2": 1191, "P2-3": 1297, "P2-4": 1244, "P2-5": 1273, "P1-5": 1273, "P1-6": 1267, "P2-6": 1264, "P1-7": 1285, "P2-7": 1177, "P1-8": 1292, "P2-8": 1167, "P1-9": 1245, "P2-9": 1077, "P1-10": 1317, "P2-10": 1074};
+          U.bilancio.forEach(b => { const add = CAM[+b.mese]; if (+b.anno === 2026 && add) b.omaggi = (Number(b.omaggi) || 0) + add; });
+          Object.keys(PROD).forEach(k => {
+            const [pol, m] = k.split('-'); const mm = String(m).padStart(2, '0');
+            const id = 'rett20261105_' + pol + '_' + mm;
+            if (U.entrate.some(e => e.id === id)) return;
+            const last = new Date(2026, +m, 0).getDate();
+            U.entrate.push({ id, sorgente: pol, data: '2026-' + mm + '-' + String(last).padStart(2, '0'), produttore: 'Selvagge', trasportatore: '',
+              uova: PROD[k], kg: null, pesoMedio: null, ddt: 'RETTIFICA', lotto: 'Rettifica 05/11/2026', scadenza: '' });
+          });
+          localStorage.setItem('ls_uova_v1', JSON.stringify(U));
+        }
+        localStorage.setItem('slv_fix_rett_20261105', new Date().toISOString());
+        await pushToCloud(); setTimeout(() => location.reload(), 300); return;
+      } catch (e) { console.error('Rettifica 05/11', e); }
     }
     if (updated) {
       // Ricarica la pagina per mostrare i dati aggiornati
