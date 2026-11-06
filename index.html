@@ -74,7 +74,7 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
     'lsmagazzino_v1','ls_uova_v1',
     'dip_v5','fer_v5','ore_v5','sch_v5','str_v1','tur_v5',
     'lslogistica_v1','lsscadenziario_v1','lscalanalisi_v1','lscoperture_v1',
-    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105','slv_fix_stat_20261106c','slv_fix_rett2_20261106'
+    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105','slv_fix_stat_20261106c','slv_fix_p1p2_20261106','slv_fix_gall_20261106'
   ];
   const SYNC_KEY = 'selvagge_data';
   const SYNC_TS  = 'selvagge_sync_ts';
@@ -244,37 +244,57 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
         await pushToCloud(); setTimeout(() => location.reload(), 300); return;
       } catch (e) { console.error('Importazione statistiche', e); }
     }
-    // Ridistribuzione una tantum (06-11-2026) della rettifica produzione P1/P2 del 05-11:
-    // le quote di agosto-ottobre spostate su aprile-luglio (efficienza massima 97%), totale invariato
-    if (localStorage.getItem('slv_fix_rett_20261105') && !localStorage.getItem('slv_fix_rett2_20261106')) {
+    // Correzione una tantum (06-11-2026): galline medie 2026 P1 -170 e P2 -96 in ogni mese
+    if (!localStorage.getItem('slv_fix_gall_20261106')) {
       try {
-        const NEWR = {"P1-1": 21, "P1-3": 614, "P1-4": 2529, "P2-1": 1326, "P2-2": 1191, "P2-3": 1297, "P2-4": 1753, "P2-5": 1884, "P1-5": 2502, "P1-6": 2169, "P2-6": 1569, "P1-7": 2375, "P2-7": 2392, "P1-8": 0, "P2-8": 0, "P1-9": 0, "P2-9": 0, "P1-10": 0, "P2-10": 0};
+        const O = JSON.parse(localStorage.getItem('slv_ops_v1') || 'null');
+        if (O && O['2026']) {
+          Object.keys(O['2026']).forEach(i => { const d = O['2026'][i]; if (!d) return;
+            if (Number(d.gallineP1) > 0) d.gallineP1 = Math.max(0, Number(d.gallineP1) - 170);
+            if (Number(d.gallineP2) > 0) d.gallineP2 = Math.max(0, Number(d.gallineP2) - 96); });
+          localStorage.setItem('slv_ops_v1', JSON.stringify(O));
+        }
+        localStorage.setItem('slv_fix_gall_20261106', new Date().toISOString());
+        try { sessionStorage.setItem('slv_msg', 'Galline aggiornate'); } catch(e) {}
+        await pushToCloud(); setTimeout(() => location.reload(), 300); return;
+      } catch (e) { console.error('Correzione galline', e); }
+    }
+    // Produzione P1/P2 2026 (06-11-2026): valori mensili definitivi scritti direttamente nelle registrazioni
+    // di Entrate P1/P2, senza righe di rettifica. Galline ridotte, efficienza massima 97%,
+    // magazzino di fine mese mai sotto 1.000 uova, totale prodotto invariato.
+    if (localStorage.getItem('slv_fix_rett_20261105') && !localStorage.getItem('slv_fix_p1p2_20261106')) {
+      try {
+        const TGT = {"P1-1": 739, "P1-2": 0, "P1-3": 32806, "P1-4": 43475, "P1-5": 44834, "P1-6": 43271, "P1-7": 44593, "P1-8": 43640, "P1-9": 42030, "P1-10": 44052, "P2-1": 44263, "P2-2": 39898, "P2-3": 44383, "P2-4": 42806, "P2-5": 44202, "P2-6": 42573, "P2-7": 42142, "P2-8": 39390, "P2-9": 36380, "P2-10": 36280};
         const U = JSON.parse(localStorage.getItem('ls_uova_v1') || 'null');
         if (U && U.entrate) {
-          Object.keys(NEWR).forEach(k => {
-            const [pol, m] = k.split('-'); const mm = String(m).padStart(2, '0');
-            const id = 'rett20261105_' + pol + '_' + mm; const val = NEWR[k];
-            const i = U.entrate.findIndex(e => e.id === id);
-            if (!val) { if (i >= 0) U.entrate.splice(i, 1); return; }
-            if (i >= 0) { U.entrate[i].uova = val; return; }
-            const last = new Date(2026, +m, 0).getDate();
-            U.entrate.push({ id, sorgente: pol, data: '2026-' + mm + '-' + String(last).padStart(2, '0'), produttore: 'Selvagge', trasportatore: '',
-              uova: val, kg: null, pesoMedio: null, ddt: 'RETTIFICA', lotto: 'Rettifica 05/11/2026', scadenza: '' });
+          U.entrate = U.entrate.filter(e => !String(e.id || '').startsWith('rett2026'));
+          Object.keys(TGT).forEach(k => {
+            const [pol, m] = k.split('-'); const mm = String(m).padStart(2, '0'); const pref = '2026-' + mm;
+            const rows = U.entrate.filter(e => e.sorgente === pol && String(e.data || '').slice(0, 7) === pref);
+            const val = TGT[k];
+            if (rows.length) {
+              const altri = rows.slice(0, -1).reduce((s, e) => s + (Number(e.uova) || 0), 0);
+              rows[rows.length - 1].uova = val - altri;
+            } else if (val) {
+              const last = new Date(2026, +m, 0).getDate();
+              U.entrate.push({ id: 'p' + Date.now().toString(36) + pol + mm, sorgente: pol, data: pref + '-' + String(last).padStart(2, '0'),
+                produttore: 'Selvagge', trasportatore: '', uova: val, kg: null, pesoMedio: null, ddt: '', lotto: '', scadenza: '' });
+            }
           });
           localStorage.setItem('ls_uova_v1', JSON.stringify(U));
         }
-        localStorage.setItem('slv_fix_rett2_20261106', new Date().toISOString());
-        try { sessionStorage.setItem('slv_msg', 'Magazzino ridistribuito'); } catch(e) {}
+        localStorage.setItem('slv_fix_p1p2_20261106', new Date().toISOString());
+        try { sessionStorage.setItem('slv_msg', 'Produzione P1/P2 aggiornata'); } catch(e) {}
         await pushToCloud(); setTimeout(() => location.reload(), 300); return;
-      } catch (e) { console.error('Ridistribuzione rettifica', e); }
+      } catch (e) { console.error('Produzione P1/P2', e); }
     }
     if (updated) {
       // Ricarica la pagina per mostrare i dati aggiornati
       setTimeout(() => location.reload(), 500);
     } else {
       let mm = null; try { mm = sessionStorage.getItem('slv_msg'); sessionStorage.removeItem('slv_msg'); } catch(e) {}
-      if (!window.__pullOk) setIndicator('off', (mm ? mm + ' · ' : '') + 'Cloud non raggiungibile · v. 06/11 15:45');
-      else setIndicator('ok', (mm ? mm + ' · ' : 'Cloud sync attivo · ') + 'v. 06/11 15:45');
+      if (!window.__pullOk) setIndicator('off', (mm ? mm + ' · ' : '') + 'Cloud non raggiungibile · v. 06/11 16:10');
+      else setIndicator('ok', (mm ? mm + ' · ' : 'Cloud sync attivo · ') + 'v. 06/11 16:10');
     }
   });
 
