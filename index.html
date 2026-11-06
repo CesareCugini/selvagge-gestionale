@@ -74,7 +74,7 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
     'lsmagazzino_v1','ls_uova_v1',
     'dip_v5','fer_v5','ore_v5','sch_v5','str_v1','tur_v5',
     'lslogistica_v1','lsscadenziario_v1','lscalanalisi_v1','lscoperture_v1',
-    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105','slv_fix_stat_20261106c'
+    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105','slv_fix_stat_20261106c','slv_fix_rett2_20261106'
   ];
   const SYNC_KEY = 'selvagge_data';
   const SYNC_TS  = 'selvagge_sync_ts';
@@ -222,7 +222,7 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
     }
     // Importazione una tantum STATISTICHE_ANNO_v6 (06-11-2026): uscite Cat. A e fatturato senza IVA 10%,
     // su tutti gli articoli (compresi costo RIBA e galline)
-    if (window.__pullOk && !localStorage.getItem('slv_fix_stat_20261106c')) {
+    if (!localStorage.getItem('slv_fix_stat_20261106c')) {
       try {
         const USC = {"1": 164049, "2": 154270, "3": 233561, "4": 219161, "5": 216095, "6": 198229, "7": 196363, "8": 160212, "9": 239506, "10": 253696}, FAT = {"1": 107332.06, "2": 101321.49, "3": 152178.67, "4": 141587.16, "5": 140086.71, "6": 127938.15, "7": 126197.04, "8": 102181.17, "9": 154796.67, "10": 161827.54}, B00 = {"5": 210};
         const U = JSON.parse(localStorage.getItem('ls_uova_v1') || 'null');
@@ -240,14 +240,41 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
           localStorage.setItem('slv_ops_v1', JSON.stringify(O));
         }
         localStorage.setItem('slv_fix_stat_20261106c', new Date().toISOString());
+        try { sessionStorage.setItem('slv_msg', 'Statistiche 2026 importate'); } catch(e) {}
         await pushToCloud(); setTimeout(() => location.reload(), 300); return;
       } catch (e) { console.error('Importazione statistiche', e); }
+    }
+    // Ridistribuzione una tantum (06-11-2026) della rettifica produzione P1/P2 del 05-11:
+    // le quote di agosto-ottobre spostate su aprile-luglio (efficienza massima 97%), totale invariato
+    if (localStorage.getItem('slv_fix_rett_20261105') && !localStorage.getItem('slv_fix_rett2_20261106')) {
+      try {
+        const NEWR = {"P1-1": 21, "P1-3": 614, "P1-4": 2529, "P2-1": 1326, "P2-2": 1191, "P2-3": 1297, "P2-4": 1753, "P2-5": 1884, "P1-5": 2502, "P1-6": 2169, "P2-6": 1569, "P1-7": 2375, "P2-7": 2392, "P1-8": 0, "P2-8": 0, "P1-9": 0, "P2-9": 0, "P1-10": 0, "P2-10": 0};
+        const U = JSON.parse(localStorage.getItem('ls_uova_v1') || 'null');
+        if (U && U.entrate) {
+          Object.keys(NEWR).forEach(k => {
+            const [pol, m] = k.split('-'); const mm = String(m).padStart(2, '0');
+            const id = 'rett20261105_' + pol + '_' + mm; const val = NEWR[k];
+            const i = U.entrate.findIndex(e => e.id === id);
+            if (!val) { if (i >= 0) U.entrate.splice(i, 1); return; }
+            if (i >= 0) { U.entrate[i].uova = val; return; }
+            const last = new Date(2026, +m, 0).getDate();
+            U.entrate.push({ id, sorgente: pol, data: '2026-' + mm + '-' + String(last).padStart(2, '0'), produttore: 'Selvagge', trasportatore: '',
+              uova: val, kg: null, pesoMedio: null, ddt: 'RETTIFICA', lotto: 'Rettifica 05/11/2026', scadenza: '' });
+          });
+          localStorage.setItem('ls_uova_v1', JSON.stringify(U));
+        }
+        localStorage.setItem('slv_fix_rett2_20261106', new Date().toISOString());
+        try { sessionStorage.setItem('slv_msg', 'Magazzino ridistribuito'); } catch(e) {}
+        await pushToCloud(); setTimeout(() => location.reload(), 300); return;
+      } catch (e) { console.error('Ridistribuzione rettifica', e); }
     }
     if (updated) {
       // Ricarica la pagina per mostrare i dati aggiornati
       setTimeout(() => location.reload(), 500);
     } else {
-      setIndicator('ok', 'Cloud sync attivo');
+      let mm = null; try { mm = sessionStorage.getItem('slv_msg'); sessionStorage.removeItem('slv_msg'); } catch(e) {}
+      if (!window.__pullOk) setIndicator('off', (mm ? mm + ' · ' : '') + 'Cloud non raggiungibile · v. 06/11 15:45');
+      else setIndicator('ok', (mm ? mm + ' · ' : 'Cloud sync attivo · ') + 'v. 06/11 15:45');
     }
   });
 
