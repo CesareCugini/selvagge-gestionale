@@ -74,7 +74,7 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
     'lsmagazzino_v1','ls_uova_v1',
     'dip_v5','fer_v5','ore_v5','sch_v5','str_v1','tur_v5',
     'lslogistica_v1','lsscadenziario_v1','lscalanalisi_v1','lscoperture_v1',
-    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105','slv_fix_stat_20261106c','slv_fix_p1p2_20261106','slv_fix_gall_20261106','slv_fix_galljan_20261106','slv_fix_2025_20261106','slv_fix_2025b_20261106','slv_anni_extra'
+    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105','slv_fix_stat_20261106c','slv_fix_p1p2_20261106','slv_fix_gall_20261106','slv_fix_galljan_20261106','slv_fix_2025_20261106','slv_fix_2025b_20261106','slv_anni_extra','slv_fix_zone2026_20261106'
   ];
   const SYNC_KEY = 'selvagge_data';
   const SYNC_TS  = 'selvagge_sync_ts';
@@ -334,13 +334,39 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
         await pushToCloud(); setTimeout(() => location.reload(), 300); return;
       } catch (e) { console.error('Correzione 2025', e); }
     }
+    // Zone 2026 (06-11-2026): Bergamo = totale del mese meno Milano, Brescia e Altro,
+    // per uova vendute (Uscite Cat. A del Registro Uova) e fatturato
+    if (localStorage.getItem('slv_fix_stat_20261106c') && !localStorage.getItem('slv_fix_zone2026_20261106')) {
+      try {
+        const O = JSON.parse(localStorage.getItem('slv_ops_v1') || 'null');
+        const U = JSON.parse(localStorage.getItem('ls_uova_v1') || 'null');
+        if (O && O['2026']) {
+          for (let i = 0; i < 12; i++) {
+            const d = O['2026'][i]; if (!d) continue;
+            const b = U && U.bilancio ? U.bilancio.find(x => +x.anno === 2026 && +x.mese === i + 1) : null;
+            const vend = b ? Number(b.uscite) || 0 : Number(d.vendute) || 0;
+            const fat = Number(d.fatturato) || 0;
+            if (!vend && !fat) continue;
+            const altriQ = ['MI','BS','AL'].reduce((s, z) => s + (Number(d['zonaQ' + z]) || 0), 0);
+            const altriF = ['MI','BS','AL'].reduce((s, z) => s + (Number(d['zonaF' + z]) || 0), 0);
+            if (vend) d.zonaQBG = vend - altriQ;
+            if (fat) d.zonaFBG = Math.round((fat - altriF) * 100) / 100;
+            if (vend) d.vendute = vend;
+          }
+          localStorage.setItem('slv_ops_v1', JSON.stringify(O));
+        }
+        localStorage.setItem('slv_fix_zone2026_20261106', new Date().toISOString());
+        try { sessionStorage.setItem('slv_msg', 'Zone 2026 riallineate'); } catch(e) {}
+        await pushToCloud(); setTimeout(() => location.reload(), 300); return;
+      } catch (e) { console.error('Zone 2026', e); }
+    }
     if (updated) {
       // Ricarica la pagina per mostrare i dati aggiornati
       setTimeout(() => location.reload(), 500);
     } else {
       let mm = null; try { mm = sessionStorage.getItem('slv_msg'); sessionStorage.removeItem('slv_msg'); } catch(e) {}
-      if (!window.__pullOk) setIndicator('off', (mm ? mm + ' · ' : '') + 'Cloud non raggiungibile · v. 06/11 18:45');
-      else setIndicator('ok', (mm ? mm + ' · ' : 'Cloud sync attivo · ') + 'v. 06/11 18:45');
+      if (!window.__pullOk) setIndicator('off', (mm ? mm + ' · ' : '') + 'Cloud non raggiungibile · v. 06/11 19:00');
+      else setIndicator('ok', (mm ? mm + ' · ' : 'Cloud sync attivo · ') + 'v. 06/11 19:00');
     }
   });
 
