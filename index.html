@@ -74,7 +74,7 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
     'lsmagazzino_v1','ls_uova_v1',
     'dip_v5','fer_v5','ore_v5','sch_v5','str_v1','tur_v5',
     'lslogistica_v1','lsscadenziario_v1','lscalanalisi_v1','lscoperture_v1',
-    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105','slv_fix_stat_20261106b'
+    'selvagge_saved_at','slv_restore_20261105','slv_fix_mag2026_b','slv_fix_mar2026_camS','slv_fix_rett_20261105','slv_fix_stat_20261106c'
   ];
   const SYNC_KEY = 'selvagge_data';
   const SYNC_TS  = 'selvagge_sync_ts';
@@ -220,11 +220,11 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
         await pushToCloud(); setTimeout(() => location.reload(), 300); return;
       } catch (e) { console.error('Rettifica 05/11', e); }
     }
-    // Importazione una tantum STATISTICHE_ANNO_v5 (06-11-2026): uscite Cat. A e fatturato senza IVA 10%,
-    // solo articoli uova (esclusi 000TRASPORTO, 999COSTORIBA, GALMAC00000, ZZZTRAYPLASTI)
-    if (window.__pullOk && !localStorage.getItem('slv_fix_stat_20261106b')) {
+    // Importazione una tantum STATISTICHE_ANNO_v6 (06-11-2026): uscite Cat. A e fatturato senza IVA 10%,
+    // su tutti gli articoli (compresi costo RIBA e galline)
+    if (window.__pullOk && !localStorage.getItem('slv_fix_stat_20261106c')) {
       try {
-        const USC = {"1": 164049, "2": 154270, "3": 233561, "4": 219161, "5": 216095, "6": 198229, "7": 196363, "8": 160212, "9": 239506, "10": 253696}, FAT = {"1": 107284.98, "2": 101293.49, "3": 152156.67, "4": 141553.16, "5": 140084.71, "6": 127912.41, "7": 126195.04, "8": 102179.17, "9": 154794.67, "10": 161841.54}, B00 = {"5": 210};
+        const USC = {"1": 164049, "2": 154270, "3": 233561, "4": 219161, "5": 216095, "6": 198229, "7": 196363, "8": 160212, "9": 239506, "10": 253696}, FAT = {"1": 107332.06, "2": 101321.49, "3": 152178.67, "4": 141587.16, "5": 140086.71, "6": 127938.15, "7": 126197.04, "8": 102181.17, "9": 154796.67, "10": 161827.54}, B00 = {"5": 210};
         const U = JSON.parse(localStorage.getItem('ls_uova_v1') || 'null');
         if (U && U.bilancio) {
           U.bilancio.forEach(b => { if (+b.anno !== 2026) return; const m = +b.mese;
@@ -239,7 +239,7 @@ window.__RESTORE_20261105 = {"slv_ops_v1": "eyIyMDI1Ijp7IjAiOnsiY2F0QVAxIjozNTQ3
             d.fatturato = FAT[m]; if (USC[m] !== undefined) d.vendute = USC[m]; d._fromHist = false; });
           localStorage.setItem('slv_ops_v1', JSON.stringify(O));
         }
-        localStorage.setItem('slv_fix_stat_20261106b', new Date().toISOString());
+        localStorage.setItem('slv_fix_stat_20261106c', new Date().toISOString());
         await pushToCloud(); setTimeout(() => location.reload(), 300); return;
       } catch (e) { console.error('Importazione statistiche', e); }
     }
